@@ -90,8 +90,8 @@ the tail or an unrecovered stall).
 
 ## Transcription
 
-Built in, on-device, automatic. The default engine is **Parakeet TDT 0.6B v2**
-(English) via [FluidAudio](https://github.com/FluidInference/FluidAudio)'s
+Built in, on-device, automatic. The default engine is **Parakeet TDT 0.6B v3**
+(multilingual) via [FluidAudio](https://github.com/FluidInference/FluidAudio)'s
 Core ML port — roughly 20 seconds per hour of audio on Apple Silicon. Models
 (~600 MB) download once on first transcription; `quill doctor` tells you
 whether they're already cached so you're never downloading after an important
@@ -109,13 +109,20 @@ large-v3-turbo) is planned as the fallback / re-transcription option.
 
 ## Config
 
-Optional, at `~/.config/quill/config.json`:
+Optional, at `~/.config/pardon/config.json`:
 
 ```json
 {
   "recordings_dir": "~/Recordings",
   "transcription": { "enabled": true, "engine": "parakeet" },
-  "on_stop": "my-hook"
+  "on_stop": "my-hook",
+  "notes": {
+    "feedback": true,
+    "meeting_language": "french",
+    "levels": { "french": "B1", "german": "A2" },
+    "native_language": "english",
+    "api_key": "sk-ant-..."
+  }
 }
 ```
 
@@ -132,6 +139,14 @@ Optional, at `~/.config/quill/config.json`:
   argument, **after the transcript is written** (or right after recording if
   transcription is disabled). Wire it to whatever comes next: summarization,
   filing, indexing.
+- `notes`: Pardon's notes. `feedback` (default off), `meeting_language`
+  (`english`, `french`, `german`, `spanish`), a level per language (`A1` to
+  `B2`, default `B1`) and `native_language` (the same four or `other`) are set
+  from the menu bar. `api_key` is your Claude API key, made inside a workspace
+  (or set `ANTHROPIC_API_KEY` when running from a terminal). Only your own
+  lines are sent; the notes land in `notes.md` and `notes.json` in the session
+  folder. Settings from a `~/.config/darn/config.json` (earlier builds) are
+  read until the first save.
 
 ## CLI
 
@@ -160,7 +175,5 @@ quill install --uninstall
   per-process picker if it bothers you).
 - If recordings come out silent, check System Settings → Privacy & Security →
   Screen & System Audio Recording.
-- Parakeet v2 is English-only. Other languages will come with the Whisper
-  engine.
 - The binary embeds its Info.plist (`__TEXT,__info_plist`) so TCC can
   attribute permissions to quill itself when running as a LaunchAgent.

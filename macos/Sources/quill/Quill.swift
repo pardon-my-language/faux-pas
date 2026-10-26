@@ -5,9 +5,10 @@ import Foundation
 @main
 struct Quill: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "quill",
-        abstract: "Local meeting recorder + transcriber. Records mic and system audio as two tracks, then transcribes on-device.",
-        subcommands: [Run.self, Doctor.self, Install.self],
+        commandName: Brand.command,
+        abstract:
+            "Pardon for meetings: records your meetings on this Mac, transcribes them on-device, and gives you notes on how you spoke English, French, German or Spanish.",
+        subcommands: [Run.self, Doctor.self, Install.self, Notes.self],
         defaultSubcommand: Run.self
     )
 }
@@ -55,7 +56,7 @@ struct Run: ParsableCommand {
 
         FileHandle.standardError.write(
             Data(
-                "quill up · recordings → \(root.path) · ^C to quit\n".utf8
+                "\(Brand.command) up · recordings → \(root.path) · ^C to quit\n".utf8
             ))
         app.run()
     }
@@ -75,6 +76,46 @@ struct Doctor: ParsableCommand {
     }
 }
 
+struct Notes: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Write (or rewrite) Pardon's notes for a transcribed session folder."
+    )
+
+    @Argument(help: "Session folder containing transcript.json.")
+    var session: String
+
+    /// Blocks on the async pass: the root command stays synchronous because
+    /// the menu-bar daemon has to own the main thread.
+    func run() throws {
+        let dir = URL(fileURLWithPath: (session as NSString).expandingTildeInPath, isDirectory: true)
+        let outcome = Outcome()
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            do {
+                outcome.result = .success(
+                    try await NotesPass(settings: LearnerSettings.load()).run(sessionDir: dir))
+            } catch {
+                outcome.result = .failure(error)
+            }
+            done.signal()
+        }
+        done.wait()
+        switch outcome.result {
+        case .success(let file)?:
+            print(file.path)
+        case .failure(let error)?:
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
+            throw ExitCode(1)
+        case nil:
+            throw ExitCode(1)
+        }
+    }
+
+    private final class Outcome: @unchecked Sendable {
+        var result: Result<URL, Error>?
+    }
+}
+
 /// Owns the menu bar, the current recording session, and the elapsed-time
 /// ticker. All state transitions happen on the main actor.
 @MainActor
@@ -91,6 +132,9 @@ final class AppController {
         menuBar.onToggle = { [weak self] in self?.toggle() }
         menuBar.onOpenFolder = { [weak self] in self?.openFolder() }
         menuBar.onQuit = { [weak self] in self?.shutdown() }
+        menuBar.onOpenLatestNotes = { [weak self] in self?.openLatestNotes() }
+        menuBar.onSettingsChange = { [weak self] change in self?.changeSettings(change) }
+        menuBar.showSettings(LearnerSettings.load())
         menuBar.update(.idle)
 
         Task { [transcription, root] in
@@ -128,7 +172,7 @@ final class AppController {
                 // The session fires this once per degradation episode, so the
                 // user gets one notification, not one per watchdog tick.
                 notifyUser(
-                    title: "quill — \(kind.label) capture lost",
+                    title: Brand.title("\(kind.label) capture lost"),
                     body: "Recovery failed; the recording will be marked incomplete."
                 )
             }
@@ -138,7 +182,7 @@ final class AppController {
             FileHandle.standardError.write(Data("● recording → \(newSession.dir.path)\n".utf8))
         } catch {
             FileHandle.standardError.write(Data("recording start failed: \(error)\n".utf8))
-            notifyUser(title: "quill — recording failed", body: "\(error)")
+            notifyUser(title: Brand.title("recording failed"), body: "\(error)")
             return
         }
 
@@ -174,12 +218,12 @@ final class AppController {
             break
         case .recovered:
             notifyUser(
-                title: "quill — recording recovered",
+                title: Brand.title("recording recovered"),
                 body: "Capture was interrupted and resumed; see meta.json for the gap."
             )
         case .incomplete:
             notifyUser(
-                title: "quill — recording incomplete",
+                title: Brand.title("recording incomplete"),
                 body: "Part of the session was not captured; see meta.json."
             )
         }
@@ -213,7 +257,49 @@ final class AppController {
             )
         case .failed(let name):
             menuBar.updateTranscription("transcription failed · \(name)")
+        case .writingNotes(let name):
+            menuBar.updateTranscription("writing notes · \(name)")
         }
+    }
+
+    /// Save one settings change from the menu and reflect it straight back,
+    /// so the checkmarks always show what is on disk.
+    private func changeSettings(_ change: MenuBarController.SettingsChange) {
+        var settings = LearnerSettings.load()
+        switch change {
+        case .feedback(let on): settings.feedback = on
+        case .meetingLanguage(let language): settings.meetingLanguage = language
+        case .level(let level): settings.levels[settings.meetingLanguage] = level
+        case .nativeLanguage(let language): settings.nativeLanguage = language
+        }
+        do {
+            try settings.save()
+        } catch {
+            notifyUser(title: Brand.title("settings not saved"), body: "\(error)")
+        }
+        menuBar.showSettings(LearnerSettings.load())
+        if settings.feedback, settings.resolvedAPIKey == nil {
+            notifyUser(
+                title: Brand.title("one more step"),
+                body: "Add notes.api_key to \(Config.path.path) to get notes after meetings."
+            )
+        }
+    }
+
+    /// Newest session folder with Pardon's notes. Folder names sort
+    /// chronologically, so newest is the last name.
+    private func openLatestNotes() {
+        let fm = FileManager.default
+        let latest =
+            ((try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? [])
+            .map { $0.appendingPathComponent("notes.md") }
+            .filter { fm.fileExists(atPath: $0.path) }
+            .max { $0.deletingLastPathComponent().lastPathComponent < $1.deletingLastPathComponent().lastPathComponent }
+        guard let latest else {
+            notifyUser(title: Brand.title("no notes yet"), body: "Turn on Notes after meetings, then record a meeting.")
+            return
+        }
+        NSWorkspace.shared.open(latest)
     }
 
     private func tick() {

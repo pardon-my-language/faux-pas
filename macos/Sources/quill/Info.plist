@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.digimata.quill</string>
+    <string>com.joinpardon.meetings</string>
     <key>CFBundleName</key>
-    <string>quill</string>
+    <string>Pardon</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>quill records your microphone during meetings so you can transcribe them later. Audio never leaves this Mac.</string>
+    <string>Pardon records your microphone during meetings so it can transcribe them and give you notes on how you spoke. Audio never leaves this Mac.</string>
     <key>NSAudioCaptureUsageDescription</key>
-    <string>quill records system audio (the other side of your meetings) so you can transcribe them later. Audio never leaves this Mac.</string>
+    <string>Pardon records system audio (the other side of your meetings) so it can transcribe them. Audio never leaves this Mac.</string>
 </dict>
 </plist>

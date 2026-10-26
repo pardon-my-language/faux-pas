@@ -1,17 +1,17 @@
 import ArgumentParser
 import Foundation
 
-/// Manage quill's LaunchAgent so the daemon starts at login.
+/// Manage Pardon's LaunchAgent so the daemon starts at login.
 ///
 /// We deliberately do NOT use SMAppService.mainApp here — that requires a full
-/// .app bundle. Since quill ships as a single binary in /usr/local/bin, a
+/// .app bundle. Since Pardon ships as a single binary in /usr/local/bin, a
 /// plain LaunchAgent plist is the simpler, more honest mechanism.
 struct Install: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Install or remove the launch-at-login LaunchAgent."
     )
 
-    @Flag(name: .long, help: "Register quill to start at login.")
+    @Flag(name: .long, help: "Register Pardon to start at login.")
     var launchAtLogin: Bool = false
 
     @Flag(name: .long, help: "Remove the launch-at-login agent.")
@@ -35,7 +35,7 @@ struct Install: ParsableCommand {
 
     // MARK: -
 
-    private static let label = "com.digimata.quill"
+    private static let label = Brand.bundleID
 
     private var plistURL: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -54,8 +54,8 @@ struct Install: ParsableCommand {
             "RunAtLoad": true,
             "KeepAlive": ["SuccessfulExit": false] as [String: Any],
             "ProcessType": "Interactive",
-            "StandardOutPath": "/tmp/quill.out.log",
-            "StandardErrorPath": "/tmp/quill.err.log",
+            "StandardOutPath": "/tmp/\(Brand.command).out.log",
+            "StandardErrorPath": "/tmp/\(Brand.command).err.log",
         ]
 
         let url = plistURL
@@ -83,7 +83,7 @@ struct Install: ParsableCommand {
         print("✓ launch-at-login installed")
         print("  plist:  \(url.path)")
         print("  binary: \(binary)")
-        print("  logs:   /tmp/quill.out.log, /tmp/quill.err.log")
+        print("  logs:   /tmp/\(Brand.command).out.log, /tmp/\(Brand.command).err.log")
     }
 
     private func removeAgent() throws {
@@ -98,24 +98,24 @@ struct Install: ParsableCommand {
     }
 
     private func resolveBinaryPath() throws -> String {
-        // /usr/local/bin/quill is the canonical install path. Honor a real
+        // /usr/local/bin/pardon is the canonical install path. Honor a real
         // location if running from elsewhere (e.g. dev).
-        let candidate = "/usr/local/bin/quill"
+        let candidate = "/usr/local/bin/\(Brand.command)"
         if FileManager.default.isExecutableFile(atPath: candidate) {
             return candidate
         }
         // Fall back to the running executable's resolved path.
-        let argv0 = CommandLine.arguments.first ?? "quill"
+        let argv0 = CommandLine.arguments.first ?? Brand.command
         if argv0.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: argv0) {
             FileHandle.standardError.write(
                 Data(
-                    "note: /usr/local/bin/quill not found; using \(argv0)\n".utf8
+                    "note: \(candidate) not found; using \(argv0)\n".utf8
                 ))
             return argv0
         }
         FileHandle.standardError.write(
             Data(
-                "couldn't locate the quill binary. install it to /usr/local/bin/quill first.\n".utf8
+                "couldn't locate the \(Brand.command) binary. install it to \(candidate) first.\n".utf8
             ))
         throw ExitCode(1)
     }

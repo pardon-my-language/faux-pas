@@ -1,24 +1,30 @@
-<p align="center"><img src="docs/icon.png" width="96" alt="quill"></p>
+# Pardon for meetings
 
-# quill
+A Mac menu-bar app from Pardon for people learning English, French, German or Spanish. It records your meetings, transcribes them on your Mac, and afterward gives you notes on how you spoke the meeting's language: what went well, the mistakes worth fixing (with the better sentence and a short reason), patterns that keep coming back, and one thing to practice. The reasons are written in your native language; the corrections stay in the language you are learning.
 
-A fully local meeting recorder and transcriber. Quill records your mic and the call's audio as separate tracks, transcribes them on-device, and writes a timestamped `me` / `them` transcript. Nothing leaves the machine.
+Audio and transcripts never leave your Mac. If you turn on notes, only your own lines (never the other people in the meeting) are sent to Claude to write them.
+
+Built on [Quill](https://github.com/humanitas-labs/quill) by Humanitas Labs (MIT).
 
 ## 1. Install
 
 ```sh
 ./scripts/build-macos
 sudo ./scripts/install-macos
-quill install --launch-at-login   # optional
+pardon install --launch-at-login   # optional
 ```
 
 Requires macOS 15+. Apple Silicon is recommended for transcription speed.
 
 ## 2. Usage
 
-1. Click the feather in the menu bar and choose **Start recording**. First use asks for microphone and system audio permissions.
-2. Choose **Stop recording** when the meeting ends. Transcription starts automatically.
-3. The transcript lands in `~/Recordings/<yyyy.MM.dd-HHmm>/transcript.md`, next to the audio.
+1. Click the asterisk in the menu bar. Set **Your native language**, pick the language under **This meeting is in**, set **Your level in ...** for it, and turn on **Notes after meetings**.
+2. Add your Claude API key (one made inside a workspace) to `~/.config/pardon/config.json`: `{ "notes": { "api_key": "sk-ant-..." } }`.
+3. Choose **Start recording** when a meeting starts. First use asks for microphone and system audio permissions.
+4. Choose **Stop recording** when it ends. Transcription and notes run automatically, and a notification tells you when they are ready. Meetings set to your native language get a transcript but no notes.
+5. Choose **Open latest notes**. Everything lands in `~/Recordings/<yyyy.MM.dd-HHmm>/`: `transcript.md`, `notes.md`, next to the audio.
+
+To redo the notes for a meeting: `pardon notes ~/Recordings/<folder>`.
 
 See the [macOS documentation](macos/README.md) for configuration, the CLI, and troubleshooting.
 
@@ -34,4 +40,4 @@ Each platform is a native, independent implementation. They share the session la
 
 ## 4. License
 
-[MIT](LICENSE). Sibling of [parrot](https://github.com/humanitas-labs/parrot).
+[MIT](LICENSE), from Quill by Humanitas Labs.
