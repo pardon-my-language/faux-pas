@@ -1,8 +1,8 @@
-# Darn for meetings
+# Pardon for meetings
 
-Darn is Pardon's English companion. This Mac menu-bar app records your meetings, transcribes them on your Mac, and afterward gives you Darn's notes on how your spoken English went: what went well, the mistakes worth fixing (with the better sentence and a short reason), patterns that keep coming back, and one thing to practice.
+A Mac menu-bar app from Pardon for people learning English, French, German or Spanish. It records your meetings, transcribes them on your Mac, and afterward gives you notes on how you spoke the meeting's language: what went well, the mistakes worth fixing (with the better sentence and a short reason), patterns that keep coming back, and one thing to practice. The reasons are written in your native language; the corrections stay in the language you are learning.
 
-Audio and transcripts never leave your Mac. If you turn on Darn's feedback, only your own lines (never the other people in the meeting) are sent to Claude to write the notes.
+Audio and transcripts never leave your Mac. If you turn on notes, only your own lines (never the other people in the meeting) are sent to Claude to write them.
 
 Built on [Quill](https://github.com/humanitas-labs/quill) by Humanitas Labs (MIT).
 
@@ -11,20 +11,20 @@ Built on [Quill](https://github.com/humanitas-labs/quill) by Humanitas Labs (MIT
 ```sh
 ./scripts/build-macos
 sudo ./scripts/install-macos
-darn install --launch-at-login   # optional
+pardon install --launch-at-login   # optional
 ```
 
 Requires macOS 15+. Apple Silicon is recommended for transcription speed.
 
 ## 2. Usage
 
-1. Click the pebble in the menu bar. Set **Your English level** and **Your native language**, and turn on **Darn's feedback after meetings**.
-2. Add your Claude API key to `~/.config/darn/config.json`: `{ "darn": { "api_key": "sk-ant-..." } }`.
+1. Click the asterisk in the menu bar. Set **Your native language**, pick the language under **This meeting is in**, set **Your level in ...** for it, and turn on **Notes after meetings**.
+2. Add your Claude API key (one made inside a workspace) to `~/.config/pardon/config.json`: `{ "notes": { "api_key": "sk-ant-..." } }`.
 3. Choose **Start recording** when a meeting starts. First use asks for microphone and system audio permissions.
-4. Choose **Stop recording** when it ends. Transcription and Darn's notes run automatically, and a notification tells you when they are ready.
-5. Choose **Open latest notes**. Everything lands in `~/Recordings/<yyyy.MM.dd-HHmm>/`: `transcript.md`, `darn.md`, next to the audio.
+4. Choose **Stop recording** when it ends. Transcription and notes run automatically, and a notification tells you when they are ready. Meetings set to your native language get a transcript but no notes.
+5. Choose **Open latest notes**. Everything lands in `~/Recordings/<yyyy.MM.dd-HHmm>/`: `transcript.md`, `notes.md`, next to the audio.
 
-To redo the notes for a meeting: `darn notes ~/Recordings/<folder>`.
+To redo the notes for a meeting: `pardon notes ~/Recordings/<folder>`.
 
 See the [macOS documentation](macos/README.md) for configuration, the CLI, and troubleshooting.
 

@@ -6,7 +6,8 @@ import Foundation
 struct Quill: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: Brand.command,
-        abstract: "Darn for meetings: records your meetings on this Mac, transcribes them on-device, and gives you notes on your spoken English.",
+        abstract:
+            "Pardon for meetings: records your meetings on this Mac, transcribes them on-device, and gives you notes on how you spoke English, French, German or Spanish.",
         subcommands: [Run.self, Doctor.self, Install.self, Notes.self],
         defaultSubcommand: Run.self
     )
@@ -77,7 +78,7 @@ struct Doctor: ParsableCommand {
 
 struct Notes: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Write (or rewrite) Darn's notes for a transcribed session folder."
+        abstract: "Write (or rewrite) Pardon's notes for a transcribed session folder."
     )
 
     @Argument(help: "Session folder containing transcript.json.")
@@ -92,7 +93,7 @@ struct Notes: ParsableCommand {
         Task.detached {
             do {
                 outcome.result = .success(
-                    try await DarnFeedback(settings: DarnSettings.load()).run(sessionDir: dir))
+                    try await NotesPass(settings: LearnerSettings.load()).run(sessionDir: dir))
             } catch {
                 outcome.result = .failure(error)
             }
@@ -133,7 +134,7 @@ final class AppController {
         menuBar.onQuit = { [weak self] in self?.shutdown() }
         menuBar.onOpenLatestNotes = { [weak self] in self?.openLatestNotes() }
         menuBar.onSettingsChange = { [weak self] change in self?.changeSettings(change) }
-        menuBar.showSettings(DarnSettings.load())
+        menuBar.showSettings(LearnerSettings.load())
         menuBar.update(.idle)
 
         Task { [transcription, root] in
@@ -257,17 +258,18 @@ final class AppController {
         case .failed(let name):
             menuBar.updateTranscription("transcription failed · \(name)")
         case .writingNotes(let name):
-            menuBar.updateTranscription("Darn is writing notes · \(name)")
+            menuBar.updateTranscription("writing notes · \(name)")
         }
     }
 
     /// Save one settings change from the menu and reflect it straight back,
     /// so the checkmarks always show what is on disk.
     private func changeSettings(_ change: MenuBarController.SettingsChange) {
-        var settings = DarnSettings.load()
+        var settings = LearnerSettings.load()
         switch change {
         case .feedback(let on): settings.feedback = on
-        case .level(let level): settings.level = level
+        case .meetingLanguage(let language): settings.meetingLanguage = language
+        case .level(let level): settings.levels[settings.meetingLanguage] = level
         case .nativeLanguage(let language): settings.nativeLanguage = language
         }
         do {
@@ -275,26 +277,26 @@ final class AppController {
         } catch {
             notifyUser(title: Brand.title("settings not saved"), body: "\(error)")
         }
-        menuBar.showSettings(DarnSettings.load())
+        menuBar.showSettings(LearnerSettings.load())
         if settings.feedback, settings.resolvedAPIKey == nil {
             notifyUser(
                 title: Brand.title("one more step"),
-                body: "Add darn.api_key to \(Config.path.path) so I can write your notes."
+                body: "Add notes.api_key to \(Config.path.path) to get notes after meetings."
             )
         }
     }
 
-    /// Newest session folder with Darn's notes. Folder names sort
+    /// Newest session folder with Pardon's notes. Folder names sort
     /// chronologically, so newest is the last name.
     private func openLatestNotes() {
         let fm = FileManager.default
         let latest =
             ((try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? [])
-            .map { $0.appendingPathComponent("darn.md") }
+            .map { $0.appendingPathComponent("notes.md") }
             .filter { fm.fileExists(atPath: $0.path) }
             .max { $0.deletingLastPathComponent().lastPathComponent < $1.deletingLastPathComponent().lastPathComponent }
         guard let latest else {
-            notifyUser(title: Brand.title("no notes yet"), body: "Turn on Darn's feedback, then record a meeting.")
+            notifyUser(title: Brand.title("no notes yet"), body: "Turn on Notes after meetings, then record a meeting.")
             return
         }
         NSWorkspace.shared.open(latest)

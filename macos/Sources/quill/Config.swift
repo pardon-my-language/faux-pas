@@ -1,20 +1,20 @@
 import Foundation
 
-/// Optional user config at ~/.config/darn/config.json:
+/// Optional user config at ~/.config/pardon/config.json:
 ///
 ///     {
 ///       "recordings_dir": "~/Recordings",
 ///       "transcription": { "enabled": true, "engine": "parakeet" },
 ///       "mic_voice_processing": true,
 ///       "on_stop": "my-hook",
-///       "darn": { "feedback": true, "level": "B1", "native_language": "french" }
+///       "notes": { "feedback": true, "meeting_language": "french", ... }
 ///     }
 ///
 /// Resolution order for the recordings root: --out flag > config file >
 /// ~/Recordings. `on_stop` is a shell command spawned with the session
 /// directory as its argument — after the transcript is written, or right
-/// after recording when transcription is disabled. `darn` holds the
-/// learner's settings (see DarnSettings), which the menu writes back here.
+/// after recording when transcription is disabled. `notes` holds the
+/// learner's settings (see LearnerSettings), which the menu writes back here.
 enum Config {
     static let path = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".config/\(Brand.command)/config.json")
@@ -59,6 +59,11 @@ enum Config {
         load()?["mic_voice_processing"] as? Bool ?? false
     }
 
+    /// Where builds before D-174 kept the config. Read only while the new
+    /// file does not exist yet; the first save writes the new one.
+    static let legacyPath = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent(".config/darn/config.json")
+
     /// The whole config file as a dictionary, or nil if there is none.
     static func loadJSON() -> [String: Any]? {
         load()
@@ -80,7 +85,11 @@ enum Config {
     /// than silently ignored — recordings landing in an unexpected place is
     /// worse than a warning.
     private static func load() -> [String: Any]? {
-        guard FileManager.default.fileExists(atPath: path.path) else { return nil }
+        let fm = FileManager.default
+        let path =
+            fm.fileExists(atPath: path.path) || !fm.fileExists(atPath: legacyPath.path)
+            ? path : legacyPath
+        guard fm.fileExists(atPath: path.path) else { return nil }
         guard
             let data = try? Data(contentsOf: path),
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]

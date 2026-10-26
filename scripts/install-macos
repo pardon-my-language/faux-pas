@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(dirname -- "$script_dir")
-install_dir=${DARN_INSTALL_DIR:-/usr/local/bin}
-binary="$repo_root/macos/.build/release/darn"
+install_dir=${PARDON_INSTALL_DIR:-/usr/local/bin}
+binary="$repo_root/macos/.build/release/pardon"
 
 if [ ! -x "$binary" ]; then
     printf 'release binary not found; run ./scripts/build-macos first\n' >&2
@@ -12,6 +12,6 @@ if [ ! -x "$binary" ]; then
 fi
 
 install -d "$install_dir"
-install -m 755 "$binary" "$install_dir/darn"
+install -m 755 "$binary" "$install_dir/pardon"
 
-printf 'installed darn to %s/darn\n' "$install_dir"
+printf 'installed pardon to %s/pardon\n' "$install_dir"

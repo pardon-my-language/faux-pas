@@ -6,8 +6,8 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         // The target keeps Quill's name so upstream merges stay clean; the
-        // binary people install is `darn`.
-        .executable(name: "darn", targets: ["quill"])
+        // binary people install is `pardon`.
+        .executable(name: "pardon", targets: ["quill"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),

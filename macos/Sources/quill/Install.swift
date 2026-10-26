@@ -1,17 +1,17 @@
 import ArgumentParser
 import Foundation
 
-/// Manage Darn's LaunchAgent so the daemon starts at login.
+/// Manage Pardon's LaunchAgent so the daemon starts at login.
 ///
 /// We deliberately do NOT use SMAppService.mainApp here — that requires a full
-/// .app bundle. Since Darn ships as a single binary in /usr/local/bin, a
+/// .app bundle. Since Pardon ships as a single binary in /usr/local/bin, a
 /// plain LaunchAgent plist is the simpler, more honest mechanism.
 struct Install: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Install or remove the launch-at-login LaunchAgent."
     )
 
-    @Flag(name: .long, help: "Register Darn to start at login.")
+    @Flag(name: .long, help: "Register Pardon to start at login.")
     var launchAtLogin: Bool = false
 
     @Flag(name: .long, help: "Remove the launch-at-login agent.")
@@ -98,7 +98,7 @@ struct Install: ParsableCommand {
     }
 
     private func resolveBinaryPath() throws -> String {
-        // /usr/local/bin/darn is the canonical install path. Honor a real
+        // /usr/local/bin/pardon is the canonical install path. Honor a real
         // location if running from elsewhere (e.g. dev).
         let candidate = "/usr/local/bin/\(Brand.command)"
         if FileManager.default.isExecutableFile(atPath: candidate) {
