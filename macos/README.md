@@ -120,8 +120,12 @@ Optional, at `~/.config/pardon/config.json`:
     "feedback": true,
     "meeting_language": "french",
     "levels": { "french": "B1", "german": "A2" },
-    "native_language": "english",
-    "api_key": "sk-ant-..."
+    "native_language": "english"
+  },
+  "pardon": {
+    "api_url": "https://app.pardonmylanguage.com",
+    "supabase_url": "https://pehngomclikppjtwqoww.supabase.co",
+    "publishable_key": "sb_publishable_..."
   }
 }
 ```
@@ -142,11 +146,14 @@ Optional, at `~/.config/pardon/config.json`:
 - `notes`: Pardon's notes. `feedback` (default off), `meeting_language`
   (`english`, `french`, `german`, `spanish`), a level per language (`A1` to
   `B2`, default `B1`) and `native_language` (the same four or `other`) are set
-  from the menu bar. `api_key` is your Claude API key, made inside a workspace
-  (or set `ANTHROPIC_API_KEY` when running from a terminal). Only your own
-  lines are sent; the notes land in `notes.md` and `notes.json` in the session
-  folder. Settings from a `~/.config/darn/config.json` (earlier builds) are
-  read until the first save.
+  from the menu bar. Pardon's server writes the notes on your Pardon account
+  (no key to set); it uses the level and native language from your Pardon
+  profile when it has them. Only your own lines are sent; the notes land in
+  `notes.md` and `notes.json` in the session folder. Settings from a `~/.config/darn/config.json` (earlier builds) are
+  read until the first save, and an old `api_key` is dropped then.
+- `pardon`: where the app talks to. Leave it out for the real service; set it
+  to point a test build at the dev server and dev database. All three values
+  are public.
 
 ## CLI
 
@@ -156,6 +163,16 @@ quill run --out <dir>        # custom recordings root (default ~/Recordings)
 quill doctor                 # check permissions, recordings folder, models
 quill install --launch-at-login
 quill install --uninstall
+```
+
+Until the sign-in window lands (faux-pas#4), developers sign in by piping a
+Supabase refresh token for their Pardon account into a hidden command. The
+session is kept in the login keychain, one per Supabase project:
+
+```sh
+pardon session import < token.txt   # trade the token for a session
+pardon session status
+pardon session sign-out
 ```
 
 ## Stack

@@ -8,7 +8,7 @@ struct Quill: ParsableCommand {
         commandName: Brand.command,
         abstract:
             "Pardon for meetings: records your meetings on this Mac, transcribes them on-device, and gives you notes on how you spoke English, French, German or Spanish.",
-        subcommands: [Run.self, Doctor.self, Install.self, Notes.self],
+        subcommands: [Run.self, Doctor.self, Install.self, Notes.self, Session.self],
         defaultSubcommand: Run.self
     )
 }
@@ -114,6 +114,54 @@ struct Notes: ParsableCommand {
     private final class Outcome: @unchecked Sendable {
         var result: Result<URL, Error>?
     }
+}
+
+/// For developers until the sign-in window lands (faux-pas#4): learners never
+/// see or run this. `import` reads a Supabase refresh token from stdin, trades
+/// it for a session and keeps it in the keychain.
+struct Session: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Developer tools for the Pardon sign-in.",
+        shouldDisplay: false
+    )
+
+    @Argument(help: "status, import or sign-out")
+    var action: String
+
+    func run() throws {
+        let account = PardonAccount.live()
+        let host = account.endpoints.supabaseURL.host ?? ""
+        switch action {
+        case "status":
+            print(try blocking { await account.isSignedIn } ? "signed in (\(host))" : "signed out (\(host))")
+        case "import":
+            let token = (readLine(strippingNewline: true) ?? "").trimmingCharacters(in: .whitespaces)
+            guard !token.isEmpty else { throw ValidationError("pipe a refresh token on stdin") }
+            _ = try blocking { try await account.refresh(with: token) }
+            print("signed in (\(host))")
+        case "sign-out":
+            try blocking { await account.signOut() }
+            print("signed out (\(host))")
+        default:
+            throw ValidationError("unknown action \"\(action)\": use status, import or sign-out")
+        }
+    }
+}
+
+private final class BlockingBox<T>: @unchecked Sendable {
+    var result: Result<T, Error>?
+}
+
+/// Wait for async work from a synchronous command (see Notes.run).
+private func blocking<T: Sendable>(_ work: @escaping @Sendable () async throws -> T) throws -> T {
+    let box = BlockingBox<T>()
+    let done = DispatchSemaphore(value: 0)
+    Task.detached {
+        do { box.result = .success(try await work()) } catch { box.result = .failure(error) }
+        done.signal()
+    }
+    done.wait()
+    return try box.result!.get()
 }
 
 /// Owns the menu bar, the current recording session, and the elapsed-time
@@ -278,11 +326,11 @@ final class AppController {
             notifyUser(title: Brand.title("settings not saved"), body: "\(error)")
         }
         menuBar.showSettings(LearnerSettings.load())
-        if settings.feedback, settings.resolvedAPIKey == nil {
-            notifyUser(
-                title: Brand.title("one more step"),
-                body: "Add notes.api_key to \(Config.path.path) to get notes after meetings."
-            )
+        guard settings.feedback else { return }
+        Task {
+            if await !PardonAccount.live().isSignedIn {
+                notifyUser(title: Brand.title("one more step"), body: NotesPass.Failure.signedOut.description)
+            }
         }
     }
 

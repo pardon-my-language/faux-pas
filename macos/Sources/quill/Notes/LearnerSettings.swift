@@ -14,12 +14,12 @@ enum Language: String, CaseIterable, Sendable {
 ///       "feedback": true,
 ///       "meeting_language": "french",
 ///       "levels": { "french": "B1", "german": "A2" },
-///       "native_language": "english",
-///       "api_key": "sk-ant-..."
+///       "native_language": "english"
 ///     }
 ///
 /// Notes are off until the learner turns them on: only their own words ever
-/// leave the Mac, and only by their choice.
+/// leave the Mac, and only by their choice. They are written by Pardon's
+/// server on the learner's account (D-181), so there is no key to set.
 struct LearnerSettings: Equatable, Sendable {
     enum Level: String, CaseIterable, Sendable {
         case a1 = "A1", a2 = "A2", b1 = "B1", b2 = "B2"
@@ -41,17 +41,15 @@ struct LearnerSettings: Equatable, Sendable {
     var levels: [Language: Level] = [:]
     /// nil when the learner picked Other.
     var nativeLanguage: Language?
-    var apiKey: String?
 
     init(
         feedback: Bool = false, meetingLanguage: Language = .english,
-        levels: [Language: Level] = [:], nativeLanguage: Language? = nil, apiKey: String? = nil
+        levels: [Language: Level] = [:], nativeLanguage: Language? = nil
     ) {
         self.feedback = feedback
         self.meetingLanguage = meetingLanguage
         self.levels = levels
         self.nativeLanguage = nativeLanguage
-        self.apiKey = apiKey
     }
 
     init(json: [String: Any]?) {
@@ -66,8 +64,6 @@ struct LearnerSettings: Equatable, Sendable {
             }
         }
         nativeLanguage = (notes["native_language"] as? String).flatMap(Language.init(rawValue:))
-        let key = notes["api_key"] as? String
-        apiKey = (key?.isEmpty ?? true) ? nil : key
     }
 
     /// The learner's level in the language of this meeting.
@@ -83,11 +79,13 @@ struct LearnerSettings: Equatable, Sendable {
     var meetingIsInNativeLanguage: Bool { nativeLanguage == meetingLanguage }
 
     /// Write these settings back into a config dictionary, leaving every
-    /// other key (and the stored API key) as it was.
+    /// other key as it was. A Claude API key from builds before #7 is
+    /// dropped: notes come from Pardon's server now.
     func merged(into json: [String: Any]) -> [String: Any] {
         var out = json
         var notes = out["notes"] as? [String: Any] ?? out["darn"] as? [String: Any] ?? [:]
         notes.removeValue(forKey: "level")
+        notes.removeValue(forKey: "api_key")
         notes["feedback"] = feedback
         notes["meeting_language"] = meetingLanguage.rawValue
         notes["levels"] = Dictionary(
@@ -104,12 +102,5 @@ struct LearnerSettings: Equatable, Sendable {
 
     func save() throws {
         try Config.writeJSON(merged(into: Config.loadJSON() ?? [:]))
-    }
-
-    /// The config key wins; ANTHROPIC_API_KEY covers runs from a terminal.
-    var resolvedAPIKey: String? {
-        if let apiKey { return apiKey }
-        let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"]
-        return (env?.isEmpty ?? true) ? nil : env
     }
 }

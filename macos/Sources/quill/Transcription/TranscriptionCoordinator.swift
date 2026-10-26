@@ -166,10 +166,15 @@ actor TranscriptionCoordinator {
             )
         } catch NotesPass.Failure.nothingSaid {
             log(dir, "notes skipped: no lines from you")
-            notifyUser(
-                title: Brand.title("transcript ready"),
-                body: "You did not speak in this recording, so there are no notes this time."
-            )
+            notifyUser(title: Brand.title("transcript ready"), body: NotesPass.Failure.nothingSaid.description)
+        } catch NotesPass.Failure.signedOut {
+            log(dir, "notes skipped: not signed in to Pardon")
+            notifyUser(title: Brand.title("transcript ready"), body: NotesPass.Failure.signedOut.description)
+        } catch let failure as NotesPass.Failure {
+            // Daily cap, server not ready or a server error: the transcript
+            // is safe, and the notes can be asked for again later.
+            log(dir, "notes failed: \(failure)")
+            notifyUser(title: Brand.title("no notes this time"), body: failure.description)
         } catch {
             log(dir, "notes failed: \(error)")
             notifyUser(title: Brand.title("notes failed"), body: "\(error)")
