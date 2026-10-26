@@ -1,24 +1,30 @@
-<p align="center"><img src="docs/icon.png" width="96" alt="quill"></p>
+# Darn for meetings
 
-# quill
+Darn is Pardon's English companion. This Mac menu-bar app records your meetings, transcribes them on your Mac, and afterward gives you Darn's notes on how your spoken English went: what went well, the mistakes worth fixing (with the better sentence and a short reason), patterns that keep coming back, and one thing to practice.
 
-A fully local meeting recorder and transcriber. Quill records your mic and the call's audio as separate tracks, transcribes them on-device, and writes a timestamped `me` / `them` transcript. Nothing leaves the machine.
+Audio and transcripts never leave your Mac. If you turn on Darn's feedback, only your own lines (never the other people in the meeting) are sent to Claude to write the notes.
+
+Built on [Quill](https://github.com/humanitas-labs/quill) by Humanitas Labs (MIT).
 
 ## 1. Install
 
 ```sh
 ./scripts/build-macos
 sudo ./scripts/install-macos
-quill install --launch-at-login   # optional
+darn install --launch-at-login   # optional
 ```
 
 Requires macOS 15+. Apple Silicon is recommended for transcription speed.
 
 ## 2. Usage
 
-1. Click the feather in the menu bar and choose **Start recording**. First use asks for microphone and system audio permissions.
-2. Choose **Stop recording** when the meeting ends. Transcription starts automatically.
-3. The transcript lands in `~/Recordings/<yyyy.MM.dd-HHmm>/transcript.md`, next to the audio.
+1. Click the pebble in the menu bar. Set **Your English level** and **Your native language**, and turn on **Darn's feedback after meetings**.
+2. Add your Claude API key to `~/.config/darn/config.json`: `{ "darn": { "api_key": "sk-ant-..." } }`.
+3. Choose **Start recording** when a meeting starts. First use asks for microphone and system audio permissions.
+4. Choose **Stop recording** when it ends. Transcription and Darn's notes run automatically, and a notification tells you when they are ready.
+5. Choose **Open latest notes**. Everything lands in `~/Recordings/<yyyy.MM.dd-HHmm>/`: `transcript.md`, `darn.md`, next to the audio.
+
+To redo the notes for a meeting: `darn notes ~/Recordings/<folder>`.
 
 See the [macOS documentation](macos/README.md) for configuration, the CLI, and troubleshooting.
 
@@ -34,4 +40,4 @@ Each platform is a native, independent implementation. They share the session la
 
 ## 4. License
 
-[MIT](LICENSE). Sibling of [parrot](https://github.com/humanitas-labs/parrot).
+[MIT](LICENSE), from Quill by Humanitas Labs.

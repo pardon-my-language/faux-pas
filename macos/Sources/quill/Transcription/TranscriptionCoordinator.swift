@@ -12,6 +12,7 @@ actor TranscriptionCoordinator {
         case idle
         case transcribing(session: String, queued: Int)
         case failed(session: String)
+        case writingNotes(session: String)
     }
 
     private var queue: [URL] = []
@@ -81,14 +82,14 @@ actor TranscriptionCoordinator {
             publish(.transcribing(session: dir.lastPathComponent, queued: queue.count))
             do {
                 try await transcribe(dir)
-                notifyUser(title: "quill — transcript ready", body: dir.lastPathComponent)
+                await darnNotes(for: dir)
                 runHook(for: dir)
             } catch {
                 log(dir, "transcription failed: \(error)")
                 lastFailure = dir.lastPathComponent
                 notifyUser(
-                    title: "quill — transcription failed",
-                    body: "\(dir.lastPathComponent) — see transcribe.log"
+                    title: Brand.title("transcription failed"),
+                    body: "\(dir.lastPathComponent): see transcribe.log"
                 )
             }
         }
@@ -138,6 +139,35 @@ actor TranscriptionCoordinator {
         )
         try transcript.write(to: dir, captureStatus: captureStatus)
         log(dir, "done — \(merged.count) segments")
+    }
+
+    /// Darn's feedback, when the learner turned it on. A failure here is
+    /// logged and reported but never blocks the queue or the on_stop hook:
+    /// the transcript is already safe on disk, and `darn notes <dir>` retries.
+    private func darnNotes(for dir: URL) async {
+        let settings = DarnSettings.load()
+        guard settings.feedback else {
+            notifyUser(title: Brand.title("transcript ready"), body: dir.lastPathComponent)
+            return
+        }
+        publish(.writingNotes(session: dir.lastPathComponent))
+        do {
+            try await DarnFeedback(settings: settings).run(sessionDir: dir)
+            log(dir, "darn notes written")
+            notifyUser(
+                title: Brand.title("your notes are ready"),
+                body: "Open them from the menu bar: Open latest notes."
+            )
+        } catch DarnFeedback.Failure.nothingSaid {
+            log(dir, "darn notes skipped: no lines from you")
+            notifyUser(
+                title: Brand.title("transcript ready"),
+                body: "I didn't hear you speak in this one, partner, so no notes this time."
+            )
+        } catch {
+            log(dir, "darn notes failed: \(error)")
+            notifyUser(title: Brand.title("notes failed"), body: "\(error)")
+        }
     }
 
     private func preparedEngine() async throws -> TranscriptionEngine {

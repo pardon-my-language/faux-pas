@@ -4,6 +4,11 @@ import PackageDescription
 let package = Package(
     name: "quill",
     platforms: [.macOS(.v15)],
+    products: [
+        // The target keeps Quill's name so upstream merges stay clean; the
+        // binary people install is `darn`.
+        .executable(name: "darn", targets: ["quill"])
+    ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
         .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.7.0"),

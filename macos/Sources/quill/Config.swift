@@ -1,21 +1,23 @@
 import Foundation
 
-/// Optional user config at ~/.config/quill/config.json:
+/// Optional user config at ~/.config/darn/config.json:
 ///
 ///     {
 ///       "recordings_dir": "~/Recordings",
 ///       "transcription": { "enabled": true, "engine": "parakeet" },
 ///       "mic_voice_processing": true,
-///       "on_stop": "my-hook"
+///       "on_stop": "my-hook",
+///       "darn": { "feedback": true, "level": "B1", "native_language": "french" }
 ///     }
 ///
 /// Resolution order for the recordings root: --out flag > config file >
 /// ~/Recordings. `on_stop` is a shell command spawned with the session
 /// directory as its argument — after the transcript is written, or right
-/// after recording when transcription is disabled.
+/// after recording when transcription is disabled. `darn` holds the
+/// learner's settings (see DarnSettings), which the menu writes back here.
 enum Config {
     static let path = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".config/quill/config.json")
+        .appendingPathComponent(".config/\(Brand.command)/config.json")
 
     static let defaultRoot = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Recordings", isDirectory: true)
@@ -55,6 +57,23 @@ enum Config {
     /// recording meetings through the speakers.
     static func micVoiceProcessing() -> Bool {
         load()?["mic_voice_processing"] as? Bool ?? false
+    }
+
+    /// The whole config file as a dictionary, or nil if there is none.
+    static func loadJSON() -> [String: Any]? {
+        load()
+    }
+
+    /// Replace the config file atomically. Used by the menu to save the
+    /// learner's settings; every other key passes through untouched.
+    static func writeJSON(_ json: [String: Any]) throws {
+        try FileManager.default.createDirectory(
+            at: path.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        let data = try JSONSerialization.data(
+            withJSONObject: json, options: [.prettyPrinted, .sortedKeys]
+        )
+        try data.write(to: path, options: .atomic)
     }
 
     /// Parse the config file. A malformed config is reported on stderr rather

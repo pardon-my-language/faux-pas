@@ -109,13 +109,19 @@ large-v3-turbo) is planned as the fallback / re-transcription option.
 
 ## Config
 
-Optional, at `~/.config/quill/config.json`:
+Optional, at `~/.config/darn/config.json`:
 
 ```json
 {
   "recordings_dir": "~/Recordings",
   "transcription": { "enabled": true, "engine": "parakeet" },
-  "on_stop": "my-hook"
+  "on_stop": "my-hook",
+  "darn": {
+    "feedback": true,
+    "level": "B1",
+    "native_language": "french",
+    "api_key": "sk-ant-..."
+  }
 }
 ```
 
@@ -132,6 +138,11 @@ Optional, at `~/.config/quill/config.json`:
   argument, **after the transcript is written** (or right after recording if
   transcription is disabled). Wire it to whatever comes next: summarization,
   filing, indexing.
+- `darn`: Darn's notes. `feedback` (default off), `level` (`A1`, `A2`, `B1`,
+  `B2`), `native_language` (`french`, `german`, `spanish`, `other`) are set
+  from the menu bar. `api_key` is your Claude API key (or set
+  `ANTHROPIC_API_KEY` when running from a terminal). Only your own lines are
+  sent; the notes land in `darn.md` and `darn.json` in the session folder.
 
 ## CLI
 

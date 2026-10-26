@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(dirname -- "$script_dir")
-install_dir=${QUILL_INSTALL_DIR:-/usr/local/bin}
-binary="$repo_root/macos/.build/release/quill"
+install_dir=${DARN_INSTALL_DIR:-/usr/local/bin}
+binary="$repo_root/macos/.build/release/darn"
 
 if [ ! -x "$binary" ]; then
     printf 'release binary not found; run ./scripts/build-macos first\n' >&2
@@ -12,6 +12,6 @@ if [ ! -x "$binary" ]; then
 fi
 
 install -d "$install_dir"
-install -m 755 "$binary" "$install_dir/quill"
+install -m 755 "$binary" "$install_dir/darn"
 
-printf 'installed quill to %s/quill\n' "$install_dir"
+printf 'installed darn to %s/darn\n' "$install_dir"
