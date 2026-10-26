@@ -41,6 +41,20 @@ struct PardonEndpoints: Equatable, Sendable {
     }
 
     var notesURL: URL { apiURL.appendingPathComponent("api/meetings/notes") }
+    var profileURL: URL { apiURL.appendingPathComponent("api/meetings/profile") }
+    var tokenURL: URL { apiURL.appendingPathComponent("api/meetings/connect/token") }
+
+    /// The browser page that signs the app in (pml GH#2850).
+    func connectURL(port: UInt16, pkce: PKCE) -> URL {
+        var components = URLComponents(
+            url: apiURL.appendingPathComponent("connect/mac"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "port", value: String(port)),
+            URLQueryItem(name: "state", value: pkce.state),
+            URLQueryItem(name: "challenge", value: pkce.challenge),
+        ]
+        return components.url!
+    }
 }
 
 /// A Pardon sign-in: the short-lived token the server checks, and the
@@ -185,6 +199,11 @@ actor PardonAccount {
         let session = PardonSession(accessToken: access, refreshToken: refresh, expiresAt: expiresAt)
         try store.save(session)
         return session
+    }
+
+    /// Keep a session from "Sign in with Pardon".
+    func store(_ session: PardonSession) throws {
+        try store.save(session)
     }
 
     func signOut() {

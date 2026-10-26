@@ -14,7 +14,8 @@ enum Language: String, CaseIterable, Sendable {
 ///       "feedback": true,
 ///       "meeting_language": "french",
 ///       "levels": { "french": "B1", "german": "A2" },
-///       "native_language": "english"
+///       "native_language": "english",
+///       "setup_done": true
 ///     }
 ///
 /// Notes are off until the learner turns them on: only their own words ever
@@ -23,6 +24,18 @@ enum Language: String, CaseIterable, Sendable {
 struct LearnerSettings: Equatable, Sendable {
     enum Level: String, CaseIterable, Sendable {
         case a1 = "A1", a2 = "A2", b1 = "B1", b2 = "B2"
+
+        /// A Pardon level ("B1", "B1.2", "C1"), capped at B2.
+        init?(pardon value: String?) {
+            guard let head = value?.prefix(2).uppercased() else { return nil }
+            if head == "C1" || head == "C2" {
+                self = .b2
+            } else if let level = Level(rawValue: head) {
+                self = level
+            } else {
+                return nil
+            }
+        }
 
         var label: String {
             switch self {
@@ -41,15 +54,18 @@ struct LearnerSettings: Equatable, Sendable {
     var levels: [Language: Level] = [:]
     /// nil when the learner picked Other.
     var nativeLanguage: Language?
+    /// The first-run setup (faux-pas#4) was finished on this Mac.
+    var setupDone = false
 
     init(
         feedback: Bool = false, meetingLanguage: Language = .english,
-        levels: [Language: Level] = [:], nativeLanguage: Language? = nil
+        levels: [Language: Level] = [:], nativeLanguage: Language? = nil, setupDone: Bool = false
     ) {
         self.feedback = feedback
         self.meetingLanguage = meetingLanguage
         self.levels = levels
         self.nativeLanguage = nativeLanguage
+        self.setupDone = setupDone
     }
 
     init(json: [String: Any]?) {
@@ -64,6 +80,7 @@ struct LearnerSettings: Equatable, Sendable {
             }
         }
         nativeLanguage = (notes["native_language"] as? String).flatMap(Language.init(rawValue:))
+        setupDone = notes["setup_done"] as? Bool ?? false
     }
 
     /// The learner's level in the language of this meeting.
@@ -91,8 +108,28 @@ struct LearnerSettings: Equatable, Sendable {
         notes["levels"] = Dictionary(
             uniqueKeysWithValues: levels.map { ($0.key.rawValue, $0.value.rawValue) })
         notes["native_language"] = nativeLanguage?.rawValue ?? "other"
+        notes["setup_done"] = setupDone
         out["notes"] = notes
         out.removeValue(forKey: "darn")
+        return out
+    }
+
+    /// The languages the learner picked for work meetings, in a fixed order.
+    var workLanguages: [Language] { Language.allCases.filter { levels[$0] != nil } }
+
+    /// Fill these settings from the learner's Pardon profile: their native
+    /// language, and each language they study with its Pardon level (C1 and
+    /// C2 read as B2, the highest the menu offers). Languages they have not
+    /// been placed in yet start at the default level.
+    func applying(_ profile: MeetingProfile) -> LearnerSettings {
+        var out = self
+        out.nativeLanguage = profile.nativeLanguage
+        out.levels = [:]
+        for entry in profile.languages where entry.language != profile.nativeLanguage {
+            out.levels[entry.language] = Level(pardon: entry.level) ?? Self.defaultLevel
+        }
+        let first = profile.languages.first { $0.active && out.levels[$0.language] != nil }?.language
+        out.meetingLanguage = first ?? out.workLanguages.first ?? meetingLanguage
         return out
     }
 

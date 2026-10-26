@@ -171,6 +171,8 @@ final class AppController {
     private let root: URL
     private let menuBar = MenuBarController()
     private let transcription = TranscriptionCoordinator()
+    private let setup = SetupWindowController()
+    private let account = PardonAccount.live()
     private var session: RecordingSession?
     private var captureStatus = RecordingSession.CaptureStatus.allHealthy
     private var ticker: Timer?
@@ -182,8 +184,17 @@ final class AppController {
         menuBar.onQuit = { [weak self] in self?.shutdown() }
         menuBar.onOpenLatestNotes = { [weak self] in self?.openLatestNotes() }
         menuBar.onSettingsChange = { [weak self] change in self?.changeSettings(change) }
+        menuBar.onAccount = { [weak self] in self?.accountClicked() }
+        menuBar.onSetup = { [weak self] in self?.showSetup(from: .languages) }
         menuBar.showSettings(LearnerSettings.load())
         menuBar.update(.idle)
+        setup.onFinish = { [weak self] in self?.refreshAccount() }
+
+        // First run, or a setup left halfway: the welcome window (faux-pas#4).
+        Task { [weak self, setup, account] in
+            await setup.showIfNeeded(account: account)
+            self?.refreshAccount()
+        }
 
         Task { [transcription, root] in
             await transcription.setStatusHandler { status in
@@ -307,6 +318,36 @@ final class AppController {
             menuBar.updateTranscription("transcription failed · \(name)")
         case .writingNotes(let name):
             menuBar.updateTranscription("writing notes · \(name)")
+        }
+    }
+
+    /// Sign out when signed in; otherwise open the welcome window to sign in.
+    private func accountClicked() {
+        Task {
+            if await account.isSignedIn {
+                await account.signOut()
+                var settings = LearnerSettings.load()
+                settings.setupDone = false
+                try? settings.save()
+                refreshAccount()
+            } else {
+                showSetup(from: .welcome)
+            }
+        }
+    }
+
+    /// Set up again from the menu: languages onward when signed in.
+    private func showSetup(from step: SetupStep) {
+        Task {
+            let signedIn = await account.isSignedIn
+            setup.show(step: signedIn ? step : .welcome, account: account)
+        }
+    }
+
+    private func refreshAccount() {
+        Task {
+            menuBar.showAccount(signedIn: await account.isSignedIn)
+            menuBar.showSettings(LearnerSettings.load())
         }
     }
 

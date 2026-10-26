@@ -18,8 +18,8 @@ Requires macOS 15+. Apple Silicon is recommended for transcription speed.
 
 ## 2. Usage
 
-1. Click the asterisk in the menu bar. Set **Your native language**, pick the language under **This meeting is in**, set **Your level in ...** for it, and turn on **Notes after meetings**.
-2. Sign in with your Pardon account. (The sign-in window is coming in faux-pas#4; until then developers use `pardon session import`, see the macOS docs.)
+1. Open Pardon. The welcome window asks you to **Sign in with Pardon** (your browser opens; sign in there and choose Continue to the app), then fills in your native language and your languages and levels from your Pardon account, asks for the microphone and your Mac's sound, and downloads the speech model.
+2. Everything can be changed later from the asterisk in the menu bar: **This meeting is in**, **Your level**, **Your native language**, **Notes after meetings**, **Set up again...** and **Sign out**.
 3. Choose **Start recording** when a meeting starts. First use asks for microphone and system audio permissions.
 4. Choose **Stop recording** when it ends. Transcription and notes run automatically, and a notification tells you when they are ready. Meetings set to your native language get a transcript but no notes.
 5. Choose **Open latest notes**. Everything lands in `~/Recordings/<yyyy.MM.dd-HHmm>/`: `transcript.md`, `notes.md`, next to the audio.

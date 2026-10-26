@@ -145,8 +145,9 @@ Optional, at `~/.config/pardon/config.json`:
   filing, indexing.
 - `notes`: Pardon's notes. `feedback` (default off), `meeting_language`
   (`english`, `french`, `german`, `spanish`), a level per language (`A1` to
-  `B2`, default `B1`) and `native_language` (the same four or `other`) are set
-  from the menu bar. Pardon's server writes the notes on your Pardon account
+  `B2`, default `B1`) and `native_language` (the same four or `other`) are
+  filled in from your Pardon profile at setup and can be changed from the menu
+  bar. `setup_done` records that the welcome window was finished. Pardon's server writes the notes on your Pardon account
   (no key to set); it uses the level and native language from your Pardon
   profile when it has them. Only your own lines are sent; the notes land in
   `notes.md` and `notes.json` in the session folder. Settings from a `~/.config/darn/config.json` (earlier builds) are
@@ -165,9 +166,10 @@ quill install --launch-at-login
 quill install --uninstall
 ```
 
-Until the sign-in window lands (faux-pas#4), developers sign in by piping a
-Supabase refresh token for their Pardon account into a hidden command. The
-session is kept in the login keychain, one per Supabase project:
+Learners sign in from the welcome window (Sign in with Pardon opens the
+browser and comes back to the app on 127.0.0.1). Developers can also pipe a
+Supabase refresh token into a hidden command. The session is kept in the login
+keychain, one per Supabase project:
 
 ```sh
 pardon session import < token.txt   # trade the token for a session

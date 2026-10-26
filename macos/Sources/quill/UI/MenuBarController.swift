@@ -22,6 +22,7 @@ final class MenuBarController {
     private let transcriptionLabel: NSMenuItem
     private let toggleItem: NSMenuItem
     private let feedbackItem: NSMenuItem
+    private let accountItem: NSMenuItem
     private let meetingItems: [Language: NSMenuItem]
     private let levelParent: NSMenuItem
     private let levelItems: [LearnerSettings.Level: NSMenuItem]
@@ -42,6 +43,8 @@ final class MenuBarController {
     var onOpenFolder: (() -> Void)?
     var onOpenLatestNotes: (() -> Void)?
     var onSettingsChange: ((SettingsChange) -> Void)?
+    var onAccount: (() -> Void)?
+    var onSetup: (() -> Void)?
     var onQuit: (() -> Void)?
 
     init() {
@@ -131,6 +134,13 @@ final class MenuBarController {
 
         menu.addItem(.separator())
 
+        accountItem = NSMenuItem(title: "Sign in to \(Brand.name)...", action: #selector(accountClicked), keyEquivalent: "")
+        menu.addItem(accountItem)
+        let setup = NSMenuItem(title: "Set up again...", action: #selector(setupClicked), keyEquivalent: "")
+        menu.addItem(setup)
+
+        menu.addItem(.separator())
+
         let quit = NSMenuItem(
             title: "Quit \(Brand.name)",
             action: #selector(quitClicked),
@@ -138,7 +148,7 @@ final class MenuBarController {
         )
         menu.addItem(quit)
 
-        for item in [toggleItem, openFolder, openNotes, feedbackItem, quit]
+        for item in [toggleItem, openFolder, openNotes, feedbackItem, accountItem, setup, quit]
             + Array(meeting.values) + Array(level.values) + Array(native.values)
         {
             item.target = self
@@ -194,6 +204,11 @@ final class MenuBarController {
     }
 
     /// Tick the current settings. Called at launch and after every change.
+    /// "Sign in" or "Sign out", for the account on this Mac.
+    func showAccount(signedIn: Bool) {
+        accountItem.title = signedIn ? "Sign out of \(Brand.name)" : "Sign in to \(Brand.name)..."
+    }
+
     func showSettings(_ settings: LearnerSettings) {
         feedbackItem.state = settings.feedback ? .on : .off
         for (language, item) in meetingItems {
@@ -238,6 +253,10 @@ final class MenuBarController {
         else { return }
         onSettingsChange?(.level(level))
     }
+
+    @objc private func accountClicked() { onAccount?() }
+
+    @objc private func setupClicked() { onSetup?() }
 
     @objc private func nativeClicked(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }
