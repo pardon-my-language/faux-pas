@@ -8,13 +8,17 @@ Built on [Quill](https://github.com/humanitas-labs/quill) by Humanitas Labs (MIT
 
 ## 1. Install
 
+Learners download `Pardon.dmg`, open it and drag Pardon to Applications. Pardon opens at login after setup and lives in the menu bar (no Dock icon).
+
+To build the app and the disk image yourself:
+
 ```sh
-./scripts/build-macos
-sudo ./scripts/install-macos
-pardon install --launch-at-login   # optional
+./scripts/package-macos
 ```
 
-Requires macOS 15+. Apple Silicon is recommended for transcription speed.
+That writes `macos/dist/Pardon.app` and `macos/dist/Pardon-<version>.dmg`, signed ad hoc (fine on the Mac that built it). For a release anyone can open, set `PARDON_SIGN_IDENTITY` to a Developer ID Application identity and `PARDON_NOTARY_PROFILE` to a `notarytool` keychain profile; see the top of the script. The command-line build is still there for development: `./scripts/build-macos`, `sudo ./scripts/install-macos`.
+
+Requires macOS 15+ on Apple Silicon.
 
 ## 2. Usage
 

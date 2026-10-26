@@ -1,0 +1,84 @@
+#!/bin/sh
+# Build Pardon.app and Pardon.dmg (faux-pas#3).
+#
+#   ./scripts/package-macos
+#
+# Optional, for a release learners can open with no warnings:
+#   PARDON_SIGN_IDENTITY  a "Developer ID Application: ..." identity in the
+#                         keychain (security find-identity -v -p codesigning).
+#                         Without it the app is signed ad hoc: fine on this
+#                         Mac, refused by Gatekeeper anywhere else.
+#   PARDON_NOTARY_PROFILE a notarytool keychain profile (xcrun notarytool
+#                         store-credentials). Without it nothing is notarized.
+#   PARDON_VERSION        shown in Finder; default 0.1.0.
+#
+# Output: macos/dist/Pardon.app and macos/dist/Pardon-<version>.dmg
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(dirname -- "$script_dir")
+macos="$repo_root/macos"
+dist="$macos/dist"
+app="$dist/Pardon.app"
+version=${PARDON_VERSION:-0.1.0}
+build=$(git -C "$repo_root" rev-list --count HEAD)
+identity=${PARDON_SIGN_IDENTITY:--}
+
+say() { printf '%s\n' "$*" >&2; }
+
+say "building release binary"
+(cd "$macos" && swift build -c release --arch arm64)
+bin_dir=$(cd "$macos" && swift build -c release --arch arm64 --show-bin-path)
+binary="$bin_dir/pardon"
+
+say "assembling $app"
+rm -rf "$dist"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp "$binary" "$app/Contents/MacOS/pardon"
+sed -e "s/__VERSION__/$version/" -e "s/__BUILD__/$build/" "$macos/Packaging/Info.plist" > "$app/Contents/Info.plist"
+plutil -lint "$app/Contents/Info.plist" >/dev/null
+
+iconset="$dist/AppIcon.iconset"
+swift "$script_dir/render-icon.swift" "$macos/Sources/quill/UI/PardonMark.swift" "$iconset"
+iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
+rm -rf "$iconset"
+
+# Resource bundles SwiftPM made for dependencies, if any, ride along.
+for bundle in "$bin_dir/"*.bundle; do
+    [ -e "$bundle" ] && cp -R "$bundle" "$app/Contents/Resources/"
+done
+
+say "signing with ${identity}"
+if [ "$identity" = "-" ]; then
+    codesign --force --sign - --entitlements "$macos/Packaging/Pardon.entitlements" "$app"
+else
+    codesign --force --timestamp --options runtime --sign "$identity" \
+        --entitlements "$macos/Packaging/Pardon.entitlements" "$app"
+fi
+codesign --verify --strict "$app"
+
+say "making the disk image"
+staging="$dist/dmg"
+mkdir -p "$staging"
+cp -R "$app" "$staging/"
+ln -s /Applications "$staging/Applications"
+dmg="$dist/Pardon-$version.dmg"
+hdiutil create -quiet -volname "Pardon" -srcfolder "$staging" -fs HFS+ -format UDZO "$dmg"
+rm -rf "$staging"
+if [ "$identity" != "-" ]; then
+    codesign --force --timestamp --sign "$identity" "$dmg"
+fi
+
+if [ -n "${PARDON_NOTARY_PROFILE:-}" ]; then
+    if [ "$identity" = "-" ]; then
+        say "not notarizing: an ad hoc signature cannot be notarized (set PARDON_SIGN_IDENTITY)"
+        exit 1
+    fi
+    say "notarizing (a few minutes)"
+    xcrun notarytool submit "$dmg" --keychain-profile "$PARDON_NOTARY_PROFILE" --wait
+    xcrun stapler staple "$dmg"
+    spctl --assess --type open --context context:primary-signature "$dmg"
+fi
+
+say "done: $dmg"
+printf '%s\n' "$dmg"

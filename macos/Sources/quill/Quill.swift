@@ -34,11 +34,13 @@ struct Run: ParsableCommand {
 
         // Non-blocking: permissions prompt on first recording, so warnings at
         // startup are informational, not fatal.
+        // The app never quits over them: a learner who said no to the
+        // microphone still needs the menu and the setup window to fix it.
         let checks = DoctorReport.run(recordingsRoot: root)
         if !DoctorReport.allOK(checks) {
             FileHandle.standardError.write(Data("startup checks failed:\n".utf8))
             DoctorReport.print(checks)
-            throw ExitCode(1)
+            if !AppBundle.isApp { throw ExitCode(1) }
         }
 
         let app = NSApplication.shared

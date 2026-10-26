@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.joinpardon.meetings</string>
+    <key>CFBundleName</key>
+    <string>Pardon</string>
+    <key>CFBundleDisplayName</key>
+    <string>Pardon</string>
+    <key>CFBundleExecutable</key>
+    <string>pardon</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>__VERSION__</string>
+    <key>CFBundleVersion</key>
+    <string>__BUILD__</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.education</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Pardon. Built on Quill by Humanitas Labs (MIT).</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Pardon records your microphone during meetings so it can transcribe them and give you notes on how you spoke. Audio never leaves this Mac.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>Pardon listens to your Mac's sound during meetings to tell your voice apart from the others in the call. Audio never leaves this Mac.</string>
+</dict>
+</plist>

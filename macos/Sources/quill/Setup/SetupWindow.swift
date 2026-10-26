@@ -45,6 +45,7 @@ final class SetupModel: ObservableObject {
         settings.setupDone = true
         settings.feedback = true
         save()
+        AppBundle.openAtLogin()
         onFinish?()
     }
 
