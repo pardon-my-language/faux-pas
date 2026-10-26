@@ -116,7 +116,9 @@ final class SetupModel: ObservableObject {
             openPrivacy("Privacy_Microphone")
             return
         }
-        AVCaptureDevice.requestAccess(for: .audio) { _ in
+        // macOS answers on a background queue. Without @Sendable the closure
+        // would inherit this class's main-actor isolation and trap there.
+        AVCaptureDevice.requestAccess(for: .audio) { @Sendable _ in
             Task { @MainActor in self.micStatus = AVCaptureDevice.authorizationStatus(for: .audio) }
         }
     }
