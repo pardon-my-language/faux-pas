@@ -163,6 +163,21 @@ final class DarnFeedbackTests: XCTestCase {
         XCTAssertTrue(out.contains("Howdy  partner, nice work!") || out.contains("Howdy partner, nice work!"))
     }
 
+    func testPatternWithoutFinalPeriodStillReadsAsASentence() {
+        let bare = DarnSummary(
+            greeting: "Howdy!", went_well: [], mistakes: [],
+            patterns: [.init(pattern: "Adding to after must", example: "We must to check", native_language_habit: false)],
+            practice: "Say it.")
+        let out = bare.rendered(title: "t", settings: DarnSettings())
+        XCTAssertTrue(out.contains("- Adding to after must. For example: \"We must to check\""))
+    }
+
+    func testPatternEndingInPunctuationGetsNoExtraPeriod() {
+        XCTAssertEqual(DarnSummary.sentence("Using am before agree."), "Using am before agree.")
+        XCTAssertEqual(DarnSummary.sentence("Say \"I agree\":"), "Say \"I agree\":")
+        XCTAssertEqual(DarnSummary.sentence("  "), "")
+    }
+
     func testNoHabitNoteWhenNativeLanguageIsNotSet() {
         let out = summary.rendered(title: "t", settings: DarnSettings(nativeLanguage: .other))
         XCTAssertFalse(out.contains("A habit many"))

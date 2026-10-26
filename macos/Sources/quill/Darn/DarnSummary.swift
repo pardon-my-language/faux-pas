@@ -77,7 +77,7 @@ struct DarnSummary: Codable, Equatable, Sendable {
         if !patterns.isEmpty {
             lines += ["## Patterns", ""]
             for p in patterns {
-                var line = "- \(Self.clean(p.pattern)) For example: \"\(Self.clean(p.example))\""
+                var line = "- \(Self.sentence(p.pattern)) For example: \"\(Self.clean(p.example))\""
                 if p.native_language_habit, let habit { line += " (\(habit))" }
                 lines.append(line)
             }
@@ -85,6 +85,14 @@ struct DarnSummary: Codable, Equatable, Sendable {
         }
         lines += ["## Practice before your next meeting", "", Self.clean(practice), ""]
         return lines.joined(separator: "\n")
+    }
+
+    /// A cleaned line that ends like a sentence, so the text after it
+    /// ("For example: ...") never runs on from it.
+    static func sentence(_ text: String) -> String {
+        let cleaned = clean(text)
+        guard let last = cleaned.last, !".!?:".contains(last) else { return cleaned }
+        return cleaned + "."
     }
 
     /// No long dashes and no emojis, anywhere Darn writes.
