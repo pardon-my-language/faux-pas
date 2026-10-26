@@ -1,7 +1,7 @@
 import Foundation
 
-/// Pardon's notes on one meeting. Property names are the JSON schema the
-/// model fills (structured output) and the shape of notes.json.
+/// Pardon's notes on one meeting. Property names are the shape Pardon's
+/// server sends (pml src/lib/meeting-notes.ts) and the shape of notes.json.
 struct MeetingNotes: Codable, Equatable, Sendable {
     struct Mistake: Codable, Equatable, Sendable {
         let said: String
@@ -21,34 +21,6 @@ struct MeetingNotes: Codable, Equatable, Sendable {
     let mistakes: [Mistake]
     let patterns: [Pattern]
     let practice: String
-
-    static var schema: [String: Any] {
-        func object(_ properties: [String: Any]) -> [String: Any] {
-            [
-                "type": "object",
-                "additionalProperties": false,
-                "required": properties.keys.sorted(),
-                "properties": properties,
-            ]
-        }
-        let text: [String: Any] = ["type": "string"]
-        let flag: [String: Any] = ["type": "boolean"]
-        return object([
-            "greeting": text,
-            "went_well": ["type": "array", "items": text],
-            "mistakes": [
-                "type": "array",
-                "items": object([
-                    "said": text, "better": text, "reason": text, "native_language_habit": flag,
-                ]),
-            ],
-            "patterns": [
-                "type": "array",
-                "items": object(["pattern": text, "example": text, "native_language_habit": flag]),
-            ],
-            "practice": text,
-        ])
-    }
 
     /// The readable notes, notes.md, with headings in the learner's native
     /// language (D-176). Model text passes through `clean` so house style
