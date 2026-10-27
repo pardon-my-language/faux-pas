@@ -1,6 +1,7 @@
-// Draws Pardon's brush asterisk as the one layer of the app icon: a 1024-pixel
-// PNG on a clear background. macOS 26 and later draws the rounded square and
-// the light fill from macos/Packaging/AppIcon.icon/icon.json; an icon that
+// Draws Pardon's brush asterisk in paper white (#fbf9f0) as the one layer of
+// the app icon: a 1024-pixel PNG on a clear background. macOS 26 and later
+// draws the rounded square and the ink fill (#18160e) from
+// macos/Packaging/AppIcon.icon/icon.json (D-220); an icon that
 // draws its own square gets put inside a gray tile. The asterisk comes from
 // macos/Sources/quill/UI/PardonMark.swift, so there is one copy of the mark.
 //
@@ -17,7 +18,8 @@ guard let start = source.range(of: "<svg"), let end = source.range(of: "</svg>")
     FileHandle.standardError.write(Data("no <svg> in \(args[1])\n".utf8))
     exit(65)
 }
-guard let mark = NSImage(data: Data(source[start.lowerBound..<end.upperBound].utf8)) else {
+let svg = source[start.lowerBound..<end.upperBound].replacingOccurrences(of: "fill=\"#000\"", with: "fill=\"#fbf9f0\"")
+guard let mark = NSImage(data: Data(svg.utf8)) else {
     FileHandle.standardError.write(Data("the asterisk SVG did not load\n".utf8))
     exit(65)
 }
@@ -29,7 +31,7 @@ let rep = NSBitmapImageRep(
     bytesPerRow: 0, bitsPerPixel: 0)!
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-let size: CGFloat = 520
+let size: CGFloat = 560
 mark.draw(in: NSRect(x: (CGFloat(pixels) - size) / 2, y: (CGFloat(pixels) - size) / 2, width: size, height: size))
 NSGraphicsContext.restoreGraphicsState()
 try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: args[2]))
