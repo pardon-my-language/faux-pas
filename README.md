@@ -16,7 +16,7 @@ To build the app and the disk image yourself:
 ./scripts/package-macos
 ```
 
-That writes `macos/dist/Pardon.app` and `macos/dist/Pardon-<version>.dmg`, signed ad hoc (fine on the Mac that built it). For a release anyone can open, set `PARDON_SIGN_IDENTITY` to a Developer ID Application identity and `PARDON_NOTARY_PROFILE` to a `notarytool` keychain profile; see the top of the script. The command-line build is still there for development: `./scripts/build-macos`, `sudo ./scripts/install-macos`.
+That writes `macos/dist/Pardon.app` and `macos/dist/Pardon-<version>.dmg`, signed ad hoc (fine on the Mac that built it). For a release anyone can open, set `PARDON_SIGN_IDENTITY` to a Developer ID Application identity and `PARDON_NOTARY_PROFILE` to a `notarytool` keychain profile; see the top of the script. To publish a version, run `PARDON_VERSION=<version> ./scripts/release-macos` from master on the Mac that holds the keys: it builds, notarizes and uploads the disk image and the update feed to GitHub Releases, and every installed Pardon offers the update. The command-line build is still there for development: `./scripts/build-macos`, `sudo ./scripts/install-macos`.
 
 Requires macOS 15+ on Apple Silicon.
 

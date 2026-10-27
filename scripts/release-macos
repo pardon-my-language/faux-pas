@@ -1,0 +1,65 @@
+#!/bin/sh
+# Publish a Pardon release to GitHub (faux-pas#3, D-221).
+#
+#   PARDON_VERSION=0.1.1 ./scripts/release-macos
+#
+# Builds, signs and notarizes with package-macos, then creates the GitHub
+# release v<version> with three files:
+#   Pardon-<version>.dmg  the disk image the update feed points at
+#   Pardon.dmg            the same file under a name the website can always
+#                         link to: releases/latest/download/Pardon.dmg
+#   appcast.xml           the update feed every Pardon.app reads (SUFeedURL)
+#
+# Runs on the Mac that holds the keys, never in CI: the Developer ID
+# certificate, the notary profile and the Sparkle key "pardon-updates" all
+# live in this Mac's keychain. Needs gh signed in.
+#
+#   PARDON_DRY_RUN=1  build and check everything, upload nothing.
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(dirname -- "$script_dir")
+dist="$repo_root/macos/dist"
+repo=pardon-my-language/faux-pas
+dry_run=${PARDON_DRY_RUN:-}
+
+say() { printf '%s\n' "$*" >&2; }
+fail() { say "$*"; exit 1; }
+
+version=${PARDON_VERSION:?set PARDON_VERSION, for example PARDON_VERSION=0.1.1}
+tag="v$version"
+export PARDON_VERSION="$version"
+export PARDON_SIGN_IDENTITY="${PARDON_SIGN_IDENTITY:-Developer ID Application: Riley Crane (4FH953EMTE)}"
+export PARDON_NOTARY_PROFILE="${PARDON_NOTARY_PROFILE:-pardon-notary}"
+
+# A version goes out once, from master as it is on GitHub, so the build
+# number (the commit count) only ever grows and anyone can find the code.
+if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+    fail "$tag is already released; pick a new PARDON_VERSION"
+fi
+if [ -z "$dry_run" ]; then
+    git -C "$repo_root" fetch -q origin master
+    [ "$(git -C "$repo_root" branch --show-current)" = master ] || fail "release from master"
+    [ -z "$(git -C "$repo_root" status --porcelain --untracked-files=no)" ] || fail "commit or stash your changes first"
+    [ "$(git -C "$repo_root" rev-parse HEAD)" = "$(git -C "$repo_root" rev-parse origin/master)" ] ||
+        fail "master here differs from GitHub; pull or push first"
+fi
+
+"$script_dir/package-macos" >/dev/null
+
+dmg="$dist/Pardon-$version.dmg"
+cp "$dmg" "$dist/Pardon.dmg"
+grep -q "releases/download/$tag/Pardon-$version.dmg" "$dist/appcast.xml" ||
+    fail "appcast.xml does not point at this release"
+
+if [ -n "$dry_run" ]; then
+    say "dry run: would release $tag with:"
+    ls -l "$dmg" "$dist/Pardon.dmg" "$dist/appcast.xml" >&2
+    exit 0
+fi
+
+say "publishing $tag"
+gh release create "$tag" --repo "$repo" --target "$(git -C "$repo_root" rev-parse HEAD)" \
+    --title "Pardon $version" --generate-notes --latest \
+    "$dmg" "$dist/Pardon.dmg" "$dist/appcast.xml"
+say "done: https://github.com/$repo/releases/tag/$tag"
