@@ -28,6 +28,16 @@
     <string>public.app-category.education</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>SUFeedURL</key>
+    <string>https://github.com/pardon-my-language/faux-pas/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>8vk5F/rXiYd9vZGMKecJ0upyam9kFhd1piK3EL9n62k=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAllowsAutomaticUpdates</key>
+    <false/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
     <key>NSHumanReadableCopyright</key>
     <string>Pardon. Built on Quill by Humanitas Labs (MIT).</string>
     <key>NSMicrophoneUsageDescription</key>

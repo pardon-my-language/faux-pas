@@ -11,6 +11,14 @@
 #   PARDON_NOTARY_PROFILE a notarytool keychain profile (xcrun notarytool
 #                         store-credentials). Without it nothing is notarized.
 #   PARDON_VERSION        shown in Finder; default 0.1.0.
+#   PARDON_BUILD          the build number updates compare; default the
+#                         number of commits.
+#   PARDON_DOWNLOAD_PREFIX where the disk image will be downloaded from, for
+#                         the update feed; default this version's GitHub
+#                         release. A release (PARDON_NOTARY_PROFILE set) or
+#                         setting this also writes macos/dist/appcast.xml,
+#                         signed with the Sparkle key "pardon-updates" in the
+#                         keychain (D-221).
 #
 # Output: macos/dist/Pardon.app and macos/dist/Pardon-<version>.dmg
 set -eu
@@ -21,8 +29,10 @@ macos="$repo_root/macos"
 dist="$macos/dist"
 app="$dist/Pardon.app"
 version=${PARDON_VERSION:-0.1.0}
-build=$(git -C "$repo_root" rev-list --count HEAD)
+# Sparkle compares this number to decide what is newer.
+build=${PARDON_BUILD:-$(git -C "$repo_root" rev-list --count HEAD)}
 identity=${PARDON_SIGN_IDENTITY:--}
+download_prefix=${PARDON_DOWNLOAD_PREFIX:-https://github.com/pardon-my-language/faux-pas/releases/download/v$version/}
 
 say() { printf '%s\n' "$*" >&2; }
 
@@ -54,14 +64,28 @@ for bundle in "$bin_dir/"*.bundle; do
     [ -e "$bundle" ] && cp -R "$bundle" "$app/Contents/Resources/"
 done
 
+# Sparkle, the updater (D-221). ditto keeps the framework's symlinks.
+mkdir -p "$app/Contents/Frameworks"
+ditto "$bin_dir/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
+
+sign() {
+    if [ "$identity" = "-" ]; then
+        codesign --force --sign - "$@"
+    else
+        codesign --force --timestamp --options runtime --sign "$identity" "$@"
+    fi
+}
+
 say "signing with ${identity}"
-if [ "$identity" = "-" ]; then
-    codesign --force --sign - --entitlements "$macos/Packaging/Pardon.entitlements" "$app"
-else
-    codesign --force --timestamp --options runtime --sign "$identity" \
-        --entitlements "$macos/Packaging/Pardon.entitlements" "$app"
-fi
-codesign --verify --strict "$app"
+# Inside out: Sparkle's helpers, then Sparkle, then the app.
+sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+sign "$sparkle/XPCServices/Installer.xpc"
+sign --preserve-metadata=entitlements "$sparkle/XPCServices/Downloader.xpc"
+sign "$sparkle/Autoupdate"
+sign "$sparkle/Updater.app"
+sign "$app/Contents/Frameworks/Sparkle.framework"
+sign --entitlements "$macos/Packaging/Pardon.entitlements" "$app"
+codesign --verify --strict --deep "$app"
 
 notarize() {
     say "notarizing $(basename "$1") (a few minutes)"
@@ -85,7 +109,7 @@ fi
 say "making the disk image"
 staging="$dist/dmg"
 mkdir -p "$staging"
-cp -R "$app" "$staging/"
+ditto "$app" "$staging/Pardon.app"
 ln -s /Applications "$staging/Applications"
 dmg="$dist/Pardon-$version.dmg"
 hdiutil create -quiet -volname "Pardon" -srcfolder "$staging" -fs HFS+ -format UDZO "$dmg"
@@ -98,6 +122,20 @@ if [ -n "${PARDON_NOTARY_PROFILE:-}" ]; then
     notarize "$dmg"
     xcrun stapler staple "$dmg"
     spctl --assess --type open --context context:primary-signature "$dmg"
+fi
+
+# The update feed Pardon.app reads (SUFeedURL): this version, where to
+# download it, and a signature from the Sparkle key so no one else can ship
+# Pardon an update.
+if [ -n "${PARDON_NOTARY_PROFILE:-}" ] || [ -n "${PARDON_DOWNLOAD_PREFIX:-}" ]; then
+    say "writing the update feed"
+    feed="$dist/feed"
+    mkdir -p "$feed"
+    cp "$dmg" "$feed/"
+    "$macos/.build/artifacts/sparkle/Sparkle/bin/generate_appcast" \
+        --account pardon-updates --download-url-prefix "$download_prefix" "$feed"
+    mv "$feed/appcast.xml" "$dist/appcast.xml"
+    rm -rf "$feed"
 fi
 
 say "done: $dmg"

@@ -23,6 +23,7 @@ final class MenuBarController {
     private let toggleItem: NSMenuItem
     private let feedbackItem: NSMenuItem
     private let accountItem: NSMenuItem
+    private let updatesItem: NSMenuItem
     private let meetingItems: [Language: NSMenuItem]
     private let levelParent: NSMenuItem
     private let levelItems: [LearnerSettings.Level: NSMenuItem]
@@ -45,6 +46,7 @@ final class MenuBarController {
     var onSettingsChange: ((SettingsChange) -> Void)?
     var onAccount: (() -> Void)?
     var onSetup: (() -> Void)?
+    var onCheckForUpdates: (() -> Void)?
     var onQuit: (() -> Void)?
 
     init() {
@@ -138,6 +140,10 @@ final class MenuBarController {
         menu.addItem(accountItem)
         let setup = NSMenuItem(title: "Set up again...", action: #selector(setupClicked), keyEquivalent: "")
         menu.addItem(setup)
+        // Only Pardon.app updates itself; hidden for the command.
+        updatesItem = NSMenuItem(title: "Check for updates...", action: #selector(checkForUpdatesClicked), keyEquivalent: "")
+        updatesItem.isHidden = true
+        menu.addItem(updatesItem)
 
         menu.addItem(.separator())
 
@@ -148,7 +154,7 @@ final class MenuBarController {
         )
         menu.addItem(quit)
 
-        for item in [toggleItem, openFolder, openNotes, feedbackItem, accountItem, setup, quit]
+        for item in [toggleItem, openFolder, openNotes, feedbackItem, accountItem, setup, updatesItem, quit]
             + Array(meeting.values) + Array(level.values) + Array(native.values)
         {
             item.target = self
@@ -209,6 +215,11 @@ final class MenuBarController {
         accountItem.title = signedIn ? "Sign out of \(Brand.name)" : "Sign in to \(Brand.name)..."
     }
 
+    /// Show "Check for updates..." when this is Pardon.app.
+    func showUpdates(available: Bool) {
+        updatesItem.isHidden = !available
+    }
+
     func showSettings(_ settings: LearnerSettings) {
         feedbackItem.state = settings.feedback ? .on : .off
         for (language, item) in meetingItems {
@@ -257,6 +268,8 @@ final class MenuBarController {
     @objc private func accountClicked() { onAccount?() }
 
     @objc private func setupClicked() { onSetup?() }
+
+    @objc private func checkForUpdatesClicked() { onCheckForUpdates?() }
 
     @objc private func nativeClicked(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }

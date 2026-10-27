@@ -175,6 +175,7 @@ final class AppController {
     private let transcription = TranscriptionCoordinator()
     private let setup = SetupWindowController()
     private let account = PardonAccount.live()
+    private let updates = Updates()
     private var session: RecordingSession?
     private var captureStatus = RecordingSession.CaptureStatus.allHealthy
     private var ticker: Timer?
@@ -188,6 +189,8 @@ final class AppController {
         menuBar.onSettingsChange = { [weak self] change in self?.changeSettings(change) }
         menuBar.onAccount = { [weak self] in self?.accountClicked() }
         menuBar.onSetup = { [weak self] in self?.showSetup(from: .languages) }
+        menuBar.onCheckForUpdates = { [weak self] in self?.updates.checkNow() }
+        menuBar.showUpdates(available: updates.available)
         menuBar.showSettings(LearnerSettings.load())
         menuBar.update(.idle)
         setup.onFinish = { [weak self] in self?.refreshAccount() }

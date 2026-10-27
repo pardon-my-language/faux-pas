@@ -42,4 +42,20 @@ final class PackagingTests: XCTestCase {
     func testTestsDoNotRunAsTheApp() {
         XCTAssertFalse(AppBundle.isApp)
     }
+
+    /// D-221: check on its own, never install without asking.
+    func testUpdatesAskBeforeInstalling() throws {
+        let info = try plist("Info.plist")
+        XCTAssertEqual(info["SUEnableAutomaticChecks"] as? Bool, true)
+        XCTAssertEqual(info["SUAllowsAutomaticUpdates"] as? Bool, false)
+        XCTAssertEqual(info["SUAutomaticallyUpdate"] as? Bool, false)
+        let feed = try XCTUnwrap(info["SUFeedURL"] as? String)
+        XCTAssertTrue(feed.hasPrefix("https://"), "Sparkle refuses plain http feeds")
+        XCTAssertEqual(try XCTUnwrap(Data(base64Encoded: try XCTUnwrap(info["SUPublicEDKey"] as? String))).count, 32)
+    }
+
+    @MainActor
+    func testTheCommandHasNoUpdater() {
+        XCTAssertFalse(Updates().available)
+    }
 }
