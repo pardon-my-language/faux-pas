@@ -21,6 +21,7 @@ final class PackagingTests: XCTestCase {
         XCTAssertEqual(info["CFBundleExecutable"] as? String, Brand.command)
         XCTAssertEqual(info["LSUIElement"] as? Bool, true)
         XCTAssertEqual(info["CFBundleIconFile"] as? String, "AppIcon")
+        XCTAssertEqual(info["CFBundleIconName"] as? String, "AppIcon")
         XCTAssertEqual(info["LSMinimumSystemVersion"] as? String, "15.0")
     }
 

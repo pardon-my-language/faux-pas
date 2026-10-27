@@ -38,10 +38,16 @@ cp "$binary" "$app/Contents/MacOS/pardon"
 sed -e "s/__VERSION__/$version/" -e "s/__BUILD__/$build/" "$macos/Packaging/Info.plist" > "$app/Contents/Info.plist"
 plutil -lint "$app/Contents/Info.plist" >/dev/null
 
-iconset="$dist/AppIcon.iconset"
-swift "$script_dir/render-icon.swift" "$macos/Sources/quill/UI/PardonMark.swift" "$iconset"
-iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
-rm -rf "$iconset"
+# The icon in Apple's Icon Composer format, compiled by Xcode's actool into
+# Assets.car (macOS 26 and later) plus AppIcon.icns (older macOS).
+icon="$dist/AppIcon.icon"
+cp -R "$macos/Packaging/AppIcon.icon" "$icon"
+mkdir -p "$icon/Assets"
+swift "$script_dir/render-icon.swift" "$macos/Sources/quill/UI/PardonMark.swift" "$icon/Assets/mark.png"
+xcrun actool "$icon" --compile "$app/Contents/Resources" --app-icon AppIcon \
+    --platform macosx --target-device mac --minimum-deployment-target 15.0 \
+    --output-partial-info-plist "$dist/icon-info.plist" >/dev/null
+rm -rf "$icon" "$dist/icon-info.plist"
 
 # Resource bundles SwiftPM made for dependencies, if any, ride along.
 for bundle in "$bin_dir/"*.bundle; do
