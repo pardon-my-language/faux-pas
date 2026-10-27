@@ -63,6 +63,25 @@ else
 fi
 codesign --verify --strict "$app"
 
+notarize() {
+    say "notarizing $(basename "$1") (a few minutes)"
+    xcrun notarytool submit "$1" --keychain-profile "$PARDON_NOTARY_PROFILE" --wait
+}
+
+if [ -n "${PARDON_NOTARY_PROFILE:-}" ]; then
+    if [ "$identity" = "-" ]; then
+        say "not notarizing: an ad hoc signature cannot be notarized (set PARDON_SIGN_IDENTITY)"
+        exit 1
+    fi
+    # The app gets its own ticket so it opens with no warning even when the
+    # learner is offline the first time, long after the disk image is gone.
+    zip="$dist/Pardon.zip"
+    ditto -c -k --keepParent "$app" "$zip"
+    notarize "$zip"
+    rm -f "$zip"
+    xcrun stapler staple "$app"
+fi
+
 say "making the disk image"
 staging="$dist/dmg"
 mkdir -p "$staging"
@@ -76,12 +95,7 @@ if [ "$identity" != "-" ]; then
 fi
 
 if [ -n "${PARDON_NOTARY_PROFILE:-}" ]; then
-    if [ "$identity" = "-" ]; then
-        say "not notarizing: an ad hoc signature cannot be notarized (set PARDON_SIGN_IDENTITY)"
-        exit 1
-    fi
-    say "notarizing (a few minutes)"
-    xcrun notarytool submit "$dmg" --keychain-profile "$PARDON_NOTARY_PROFILE" --wait
+    notarize "$dmg"
     xcrun stapler staple "$dmg"
     spctl --assess --type open --context context:primary-signature "$dmg"
 fi
